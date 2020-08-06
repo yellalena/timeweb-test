@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  server:
+    build: .
+    ports:
+      - 8000:8000
+  rabbitmq:
+    hostname: rabbitmq
+    image: 'rabbitmq:latest'
+    ports:
+      - '5672:5672'
+      - '5671:5671'
+      - '4369:4369'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=myuser
+      - RABBITMQ_DEFAULT_PASS=mypassword
+    expose:
+      - 5671
+      - 4369
+      - 5672
+  celery:
+    build: .
+    command: celery -A tasks.celery worker -l info -b amqp://myuser:mypassword@rabbitmq:5672//
+  celery-beat:
+    build: .
+    command: celery -A tasks.celery beat -l info -b amqp://myuser:mypassword@rabbitmq:5672//
+
