@@ -25,7 +25,7 @@ After the server is up and listening, the app is ready to accept requests.
 * returns task's id
 
 ```shell
-http POST http://127.0.0.1:8000/parser url="http://biba.com/"
+http POST http://127.0.0.1:8000/parse url="http://biba.com/"
 
 {
     "id": "80495a8d-d85c-4853-b4bc-01a64ccfc78d"
@@ -37,7 +37,7 @@ http POST http://127.0.0.1:8000/parser url="http://biba.com/"
 * returns a link to download the archive, status and url if task is complete
 * returns only task status if task is still being processed or something went wrong
 ```shell
-http GET http://127.0.0.1:8000/parser/80495a8d-d85c-4853-b4bc-01a64ccfc78d
+http GET http://127.0.0.1:8000/result/80495a8d-d85c-4853-b4bc-01a64ccfc78d
 
 {
     "archive": "http://kuka.com/biba",
