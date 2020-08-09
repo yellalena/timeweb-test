@@ -1,18 +1,31 @@
 version: '3'
 
 services:
+  postgres:
+    image: 'postgres:latest'
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_USER=test
+      - POSTGRES_DB=timeweb_test
   server:
     build: .
+    command: python app.py
     ports:
       - 8000:8000
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://test:test@postgres:5432/timeweb_test
+      - CELERY_BROKER_URL=amqp://myuser:mypassword@rabbitmq:5672//
   rabbitmq:
     hostname: rabbitmq
     image: 'rabbitmq:latest'
     ports:
+      - '4369:4369'
       - '5672:5672'
       - '5671:5671'
-      - '4369:4369'
       - '15672:15672'
+      - '25672:25672'
     environment:
       - RABBITMQ_DEFAULT_USER=myuser
       - RABBITMQ_DEFAULT_PASS=mypassword
@@ -22,8 +35,9 @@ services:
       - 5672
   celery:
     build: .
-    command: celery -A tasks.celery worker -l info -b amqp://myuser:mypassword@rabbitmq:5672//
-  celery-beat:
-    build: .
-    command: celery -A tasks.celery beat -l info -b amqp://myuser:mypassword@rabbitmq:5672//
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://test:test@postgres:5432/timeweb_test
+      - CELERY_BROKER_URL=amqp://myuser:mypassword@rabbitmq:5672//
+    command: celery -A initialize.celery worker -l info -b amqp://myuser:mypassword@rabbitmq:5672// --concurrency=8
+
 

@@ -1,28 +1,40 @@
 import logging
 
+import requests
 from furl import furl
 
-from app import app
-from celery_config import make_celery
-from initialize import transaction
-from models.task import Task
-from web_parser.web_parser import WebParser
+from application.data_processor import DataProcessor
+from initialize import transaction, celery
+from models import TaskNotFound
+from models.task import Task, TaskStatus
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-celery = make_celery(app)
-local_parser = WebParser()
+processor = DataProcessor()
 
-@celery.task()
-def parse_data(task_id: str):
+
+@celery.task(bind=True, max_retries=3)
+def parse_data(self, task_id: str):
     try:
-        with transaction as tx:
+        with transaction() as tx:
             task_info = Task.get_by_field(tx, uuid=task_id)
-            local_parser.parse(furl(task_info.source), task_id)
-            logger.debug(f"Parsed data {task_id}")
-            # pack to ZIP
-            # send somewhere, retrieve link
-            # save link
+            if not task_info:
+                raise TaskNotFound
+            link = processor.consume_url(furl(task_info.source), task_id)
+            task_info.result = link
+            task_info.status = TaskStatus.done
+            task_info.save(tx)
+            logger.debug("Successfully processed data for task %s", task_id)
+    except TaskNotFound:
+        logger.error("Could not find task %s.", task_id)
+        raise
+    except requests.exceptions.ConnectionError as e:
+            logger.warning("Connection error. Retrying.")
+            self.retry(countdown=2 ** self.request.retries, exc=e)
     except Exception as e:
-        pass
+        with transaction() as tx:
+            task = Task.get_by_field(tx, uuid=task_id)
+            task.status = TaskStatus.error
+            logger.error("Failed to parse data due to unexpected error. %s", str(e))
+        raise

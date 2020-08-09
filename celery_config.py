@@ -5,7 +5,8 @@ def make_celery(app):
     celery = Celery(
         app.import_name,
         backend='rpc://',
-        broker=f'amqp://myuser:mypassword@localhost:5672//'
+        broker=app.config["CELERY_BROKER_URL"],
+        include=['tasks']
     )
     celery.conf.update(app.config)
 

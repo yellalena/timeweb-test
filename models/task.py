@@ -35,27 +35,8 @@ class Task(Base):
 
     def save(self, current_session):
         current_session.add(self)
-
-    @classmethod
-    def get_by_id(cls, current_session, id):
-        return current_session.query(cls).filter_by(id=id).first()
-
-    @classmethod
-    def show_all(cls, current_session):
-        return current_session.query(cls).all()
-
-    @classmethod
-    def find_by_field(cls, current_session, **kwargs):
-        return current_session.query(cls).filter_by(**kwargs).all()
+        current_session.flush()
 
     @classmethod
     def get_by_field(cls, current_session, **kwargs):
         return current_session.query(cls).filter_by(**kwargs).first()
-
-    @classmethod
-    def find_first(cls, current_session, **kwargs):
-        return current_session.query(cls).filter_by(**kwargs).first()
-
-    @classmethod
-    def find_one(cls, current_session, **kwargs):
-        return current_session.query(cls).filter_by(**kwargs).one()

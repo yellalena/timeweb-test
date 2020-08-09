@@ -5,8 +5,10 @@ from flask_restful import Resource
 from flask import request
 
 from initialize import transaction
+from models import TaskNotFound
 from models.task import Task, TaskStatus
 from resources import resp, err
+import tasks
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,9 +24,8 @@ class SiteParser(Resource):
                                 source=data["url"],
                                 status=TaskStatus.accepted)
                 new_task.save(tx)
-            import tasks
             tasks.parse_data.delay(task_id)
-            logger.debug("Accepted a new task: %s", str(new_task))
+            logger.debug("Accepted a new task: %s", task_id)
             return resp("task_id",
                         task_id,
                         201)
@@ -38,6 +39,8 @@ class Result(Resource):
         try:
             with transaction() as tx:
                 task = Task.get_by_field(tx, uuid=id)
+                if not task:
+                    raise TaskNotFound
                 if task.status == TaskStatus.done:
                     msg = {"url_to_download": task.result}
                 else:
@@ -45,6 +48,9 @@ class Result(Resource):
                 return resp("result",
                             msg,
                             200)
+        except TaskNotFound:
+            logger.error("Could not find task %s.", id)
+            return err(f"Could not find task {id}.", 404)
         except Exception as e:
             logger.error("Something went wrong while getting info on task %s", id)
             return err(f"Failed to retrieve info on task {id}: {str(e)}", 500)

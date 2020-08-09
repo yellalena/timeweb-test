@@ -4,6 +4,7 @@ from initialize import api, app
 from resources import Ping
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Routes
 from resources.parser_server import SiteParser, Result
